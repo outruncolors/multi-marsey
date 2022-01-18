@@ -3,6 +3,7 @@ import produce from "immer";
 import { generateDeck } from "./chance";
 import { Tink } from "./tink";
 import {
+  BOARD_SIZE,
   GAME_BACKGROUND_COLOR,
   GAME_SCREEN_WIDTH,
   GAME_SCREEN_HEIGHT,
@@ -10,10 +11,12 @@ import {
   PADDING_SMALL,
   CARD_WIDTH,
   GAME_SCALE,
-  CARD_HEIGHT
+  CARD_HEIGHT,
+  SLOT_SIZE
 } from "./config";
 import { getTexture } from "./helpers";
 import { createCard } from "./card";
+import { createSlot } from "./slot";
 
 // 1. Initialize game and load assets.
 // * When adding a new asset, be sure to add it here as well.
@@ -47,6 +50,7 @@ export async function load() {
 
 function buildInitialState() {
   return {
+    board: [],
     hand: [],
     deck: [],
     selectedCard: null
@@ -76,6 +80,42 @@ export async function initialize(element) {
   // Initialize the game state.
   gameState = buildInitialState();
 
+  // Create board from slots.
+  gameState.board = Array.from({ length: BOARD_SIZE }, (_, y) => {
+    const row = Array.from({ length: BOARD_SIZE }, (_, x) => {
+      return {
+        position: [y, x],
+        owner: 0,
+        card: null
+      };
+    });
+
+    return row;
+  });
+
+  // Add the slot assets.
+  const boardSprites = new PIXI.Container();
+
+  for (const row of gameState.board) {
+    const rowSprites = new PIXI.Container();
+
+    for (const slot of row) {
+      const [, x] = slot.position;
+      const slotSprite = createSlot();
+
+      slotSprite.position.x = x * SLOT_SIZE * GAME_SCALE + PADDING_SMALL;
+
+      rowSprites.addChild(slotSprite);
+    }
+
+    rowSprites.position.y =
+      row[0].position[0] * SLOT_SIZE * GAME_SCALE + PADDING_SMALL;
+
+    boardSprites.addChild(rowSprites);
+  }
+
+  application.stage.addChild(boardSprites);
+
   // Create deck of cards.
   gameState.deck = generateDeck();
   const deckSprite = getTexture("deck");
@@ -89,7 +129,7 @@ export async function initialize(element) {
   const hand = dealHandToPlayer();
 
   // Wait for player to select a card.
-  pointer.press = (foo) => {
+  pointer.press = () => {
     if (gameState.selectedCard) {
       deselectACard();
     }
@@ -181,7 +221,7 @@ function selectACard(handContainer, handIndex) {
 }
 
 function deselectACard() {
-  if (lastSelectedCardSprite) {
+  if (lastSelectedCardSprite != null) {
     const nextState = produce(gameState, (state) => {
       console.info("Player deselected a card.");
       state.selectedCard = null;

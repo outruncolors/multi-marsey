@@ -14,7 +14,6 @@ export function createCard(config) {
   const { title, rarity, power } = config;
   const card = new PIXI.Container();
   const cardSprite = getTexture("card");
-
   const cardTitle = buildText(title);
   cardTitle.position.set(
     PADDING_TINY,
@@ -29,9 +28,7 @@ export function createCard(config) {
     CARD_WIDTH * GAME_SCALE - cardPower.width - PADDING_SMALL - PADDING_TINY,
     PADDING_TINY * 2
   );
-
   const [top, right, bottom, left] = power;
-
   const topPower = buildText(top);
   topPower.position.set(0, -10);
 
