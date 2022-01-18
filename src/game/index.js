@@ -60,6 +60,7 @@ function buildInitialState() {
 let gameState;
 let application;
 let pointer;
+let handContainer;
 export async function initialize(element) {
   console.info("Initializing new game.");
 
@@ -95,17 +96,22 @@ export async function initialize(element) {
 
   // Add the slot assets.
   const boardSprites = new PIXI.Container();
+  const allSlotSprites = [];
 
   for (const row of gameState.board) {
     const rowSprites = new PIXI.Container();
 
     for (const slot of row) {
-      const [, x] = slot.position;
+      const [y, x] = slot.position;
       const slotSprite = createSlot();
+
+      slotSprite.boardPosition = [y, x];
 
       slotSprite.position.x = x * SLOT_SIZE * GAME_SCALE + PADDING_SMALL;
 
       rowSprites.addChild(slotSprite);
+
+      allSlotSprites.push(slotSprite);
     }
 
     rowSprites.position.y =
@@ -126,33 +132,69 @@ export async function initialize(element) {
   application.stage.addChild(deckSprite);
 
   // Deal some cards to the player.
-  const hand = dealHandToPlayer();
+  handContainer = dealHandToPlayer();
 
   // Wait for player to select a card.
-  pointer.press = () => {
-    if (gameState.selectedCard) {
-      deselectACard();
-    }
-  };
+  // pointer.press = () => {
+  //   if (gameState.selectedCard) {
+  //     deselectACard();
+  //   }
+  // };
 
+  // Handle pointer/sprite interaction.
   application.ticker.add(() => {
     tink.update();
 
-    let isPointing = false;
-    let i = 0;
-    for (const card of hand.children) {
-      if (pointer.hitTestSprite(card)) {
-        isPointing = true;
+    // Slots
+    let anySlotSelected = false;
+    if (gameState.selectedCard) {
+      allSlotSprites.forEach((slot) => {
+        if (pointer.hitTestSprite(slot)) {
+          slot.methods.select();
+          anySlotSelected = true;
 
-        if (pointer.isDown && !gameState.selectedCard) {
-          selectACard(hand.children, i);
+          if (pointer.isDown) {
+            const [y, x] = slot.boardPosition;
+            const boardSlot = gameState.board[y][x];
+
+            if (!boardSlot.card) {
+              console.info(
+                "Playing ",
+                gameState.selectedCard.title,
+                " on slot ",
+                boardSlot
+              );
+
+              // Play the card on the slot.
+              playSelectedCardOn(slot.boardPosition);
+            }
+          }
+        } else {
+          slot.methods.deselect();
         }
-      }
+      });
 
-      i++;
+      pointer.cursor = anySlotSelected ? "pointer" : "auto";
     }
 
-    pointer.cursor = isPointing ? "pointer" : "auto";
+    if (!anySlotSelected) {
+      // Cards
+      let isPointing = false;
+      let i = 0;
+      for (const card of handContainer.children) {
+        if (pointer.hitTestSprite(card)) {
+          isPointing = true;
+
+          if (pointer.isDown && !gameState.selectedCard) {
+            selectACard(i);
+          }
+        }
+
+        i++;
+      }
+
+      pointer.cursor = isPointing ? "pointer" : "auto";
+    }
   });
 
   // Once a card is selected,
@@ -200,7 +242,7 @@ function dealHandToPlayer() {
 }
 
 let lastSelectedCardSprite = null;
-function selectACard(handContainer, handIndex) {
+function selectACard(handIndex) {
   try {
     const nextState = produce(gameState, (state) => {
       const selectedCard = gameState.hand[handIndex];
@@ -211,7 +253,7 @@ function selectACard(handContainer, handIndex) {
     gameState = nextState;
 
     // Move the card up a little bit.
-    const selectedCardSprite = handContainer[handIndex];
+    const selectedCardSprite = handContainer.children[handIndex];
     selectedCardSprite.position.y -= PADDING_SMALL;
 
     lastSelectedCardSprite = selectedCardSprite;
@@ -232,3 +274,32 @@ function deselectACard() {
     lastSelectedCardSprite.position.y += PADDING_SMALL;
   }
 }
+
+function playSelectedCardOn([y, x]) {
+  let playedCardIndex;
+  const nextState = produce(gameState, (state) => {
+    console.info(
+      `Player played ${gameState.selectedCard.title} at ${y}, ${x}.`
+    );
+    state.board[y][x].card = state.selectedCard;
+    state.hand = state.hand.filter((card, index) => {
+      if (card.title !== state.selectedCard.title) {
+        return true;
+      }
+
+      playedCardIndex = index;
+
+      return false;
+    });
+    state.selectedCard = null;
+
+    console.log("hc", handContainer.children);
+  });
+
+  gameState = nextState;
+
+  // Remove played card asset from hand.
+  handContainer.children[playedCardIndex].visible = false;
+}
+
+setInterval(() => console.info("STATE: ", gameState), 3000);
