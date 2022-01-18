@@ -8,7 +8,7 @@ export function generateCard() {
   return {
     title: CHANCE.word({ capitalize: true }),
     rarity: CHANCE.integer({ min: 0, max: 3 }),
-    power: Array.from({ length: 4 }, () => CHANCE.integer({ min: 1, max: 10 }))
+    power: Array.from({ length: 4 }, () => CHANCE.integer({ min: 1, max: 9 }))
   };
 }
 

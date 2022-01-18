@@ -3,11 +3,16 @@ import produce from "immer";
 import { generateDeck } from "./chance";
 import {
   GAME_BACKGROUND_COLOR,
-  GAME_SCALE,
   GAME_SCREEN_WIDTH,
   GAME_SCREEN_HEIGHT,
-  HAND_SIZE
+  HAND_SIZE,
+  PADDING_SMALL,
+  CARD_WIDTH,
+  GAME_SCALE,
+  CARD_HEIGHT
 } from "./config";
+import { getTexture } from "./helpers";
+import { createCard } from "./card";
 
 // 1. Initialize game and load assets.
 // * When adding a new asset, be sure to add it here as well.
@@ -67,10 +72,29 @@ export async function initialize(element) {
   // Create deck of cards.
   gameState.deck = generateDeck();
   const deckSprite = getTexture("deck");
+  deckSprite.position.set(
+    PADDING_SMALL,
+    GAME_SCREEN_HEIGHT - CARD_HEIGHT * GAME_SCALE - PADDING_SMALL
+  );
   application.stage.addChild(deckSprite);
 
   // Deal some cards to the player.
   dealHandToPlayer();
+
+  const hand = new PIXI.Container();
+  hand.position.y =
+    GAME_SCREEN_HEIGHT - CARD_HEIGHT * GAME_SCALE - PADDING_SMALL;
+
+  let i = 1; // Factor in the deck itself.
+  for (const dealtCard of gameState.hand) {
+    const dealtCardSprite = createCard(dealtCard);
+    dealtCardSprite.position.x =
+      CARD_WIDTH * GAME_SCALE * i + PADDING_SMALL * 2;
+    hand.addChild(dealtCardSprite);
+    i++;
+  }
+
+  application.stage.addChild(hand);
 
   console.log({ gameState });
 
@@ -83,20 +107,6 @@ export async function initialize(element) {
 }
 
 // Helpers
-function getTexture(asset) {
-  try {
-    const sprite = new PIXI.Sprite(
-      PIXI.Loader.shared.resources[`assets/${asset}.png`].texture
-    );
-
-    sprite.scale.set(GAME_SCALE, GAME_SCALE);
-
-    return sprite;
-  } catch (error) {
-    console.error("Unable to get texture.", error);
-  }
-}
-
 function dealHandToPlayer() {
   console.info("Dealing initial hand to player.");
 
