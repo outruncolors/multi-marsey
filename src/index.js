@@ -6,4 +6,9 @@ document.getElementById("app").innerHTML = `
   <button id="load">Load Assets</button>
 `;
 
-document.getElementById("load").onclick = () => load().then(initialize);
+const loadButton = document.getElementById("load");
+
+loadButton.onclick = () =>
+  load()
+    .then(initialize)
+    .then(() => loadButton.remove());

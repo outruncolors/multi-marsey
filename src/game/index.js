@@ -7,6 +7,12 @@ const GAME_ASSETS = ["card", "empty_slot", "slot_selected"];
 export async function load() {
   console.info("Loading assets.");
 
+  let assetIndex = 0;
+  PIXI.Loader.shared.onProgress.add(() => {
+    console.info(`-- Loaded ${GAME_ASSETS[assetIndex]}`);
+    assetIndex++;
+  });
+
   return new Promise((resolve) =>
     PIXI.Loader.shared
       .add(GAME_ASSETS.map((asset) => `assets/${asset}.png`))
@@ -14,6 +20,8 @@ export async function load() {
   );
 }
 
-export function initialize() {
+export async function initialize() {
   console.info("Initializing new game.");
+
+  return;
 }
