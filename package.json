@@ -8,6 +8,8 @@
     "build": "parcel build index.html"
   },
   "dependencies": {
+    "chance": "1.1.8",
+    "immer": "9.0.12",
     "parcel-bundler": "^1.6.1",
     "pixi.js": "6.2.1"
   },

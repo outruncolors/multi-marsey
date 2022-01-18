@@ -6,9 +6,10 @@ document.getElementById("app").innerHTML = `
   <button id="load">Load Assets</button>
 `;
 
+const gameContainer = document.getElementById("game");
 const loadButton = document.getElementById("load");
 
 loadButton.onclick = () =>
   load()
-    .then(initialize)
+    .then(() => initialize(gameContainer))
     .then(() => loadButton.remove());
